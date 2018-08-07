@@ -5,47 +5,46 @@ def RepresentsInt(s):
     except ValueError:
         return False
 
-exp = raw_input()
-symble = ["+", "-"]
-symbleList=[]
-numberList=[]
-number = []
+def SimpleCalculator(exp):
+    symble = ["+", "-"]
+    symbleList=[]
+    numberList=[]
+    number = []
 
-for e in exp:
-    if RepresentsInt(e):
-        number.append(e)
-    elif e in symble:
-        symbleList.append(e)
+    for e in exp:
+        if RepresentsInt(e):
+            number.append(e)
+        elif e in symble:
+            symbleList.append(e)
+            numberList.append(''.join(number))
+            number=[]
+
+    if len(number) != 0:
         numberList.append(''.join(number))
-        number=[]
 
-if len(number) != 0:
-    numberList.append(''.join(number))
+    while len(numberList) >= 2:
 
-print(numberList)
-print(symbleList)
+        for s in symbleList:
 
-print(len(numberList))
+            a = int(numberList[0])
+            b = int(numberList[1])
 
-while len(numberList) >= 2:
+            if s == "+":
+                t = a+b
+            else:
+                t = a-b
 
-    for s in symbleList:
+            numberList.remove(numberList[1])
+            numberList.remove(numberList[0])
+            
+            numberList = [t]+numberList
+    return numberList[0]
 
-        a = int(numberList[0])
-        b = int(numberList[1])
-
-        if s == "+":
-            t = a+b
-        else:
-            t = a-b
-
-        numberList.remove(numberList[1])
-        numberList.remove(numberList[0])
-        
-        numberList = [t]+numberList
-
-print("result "+ str(numberList[0]))
-        
+while True:
+    print("escreva uma cadeia de somas e subtracoes: ")
+    exp = raw_input()
+    r = SimpleCalculator(exp)
+    print("resultado= "+ str(r))        
 
 
 
