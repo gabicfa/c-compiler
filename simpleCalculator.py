@@ -1,3 +1,5 @@
+number =[]
+
 def RepresentsInt(s):
     try: 
         int(s)
@@ -5,50 +7,94 @@ def RepresentsInt(s):
     except ValueError:
         return False
 
-def SimpleCalculator(exp):
-    symble = ["+", "-"]
-    symbleList=[]
-    numberList=[]
-    number = []
+class Token(object):
 
-    for e in exp:
-        if RepresentsInt(e):
-            number.append(e)
-        elif e in symble:
-            symbleList.append(e)
-            numberList.append(''.join(number))
-            number=[]
+    def __init__(self, tipo, valor):
+        self.tipo = tipo
+        self.valor = valor
 
-    if len(number) != 0:
-        numberList.append(''.join(number))
+class Tokenizador(object):
 
-    while len(numberList) >= 2:
+    def __init__(self, origem, posicao, atual):
+        self.origem = origem
+        self.posicao = posicao
+        self.atual = atual
 
-        for s in symbleList:
-
-            a = int(numberList[0])
-            b = int(numberList[1])
-
-            if s == "+":
-                t = a+b
-            else:
-                t = a-b
-
-            numberList.remove(numberList[1])
-            numberList.remove(numberList[0])
+    def selecionarProximo(self):
+        if(self.posicao == len(self.origem)):
+            t = Token('FIM', 'null')
+            self.atual = t
+        
+        else:
+            character = self.origem[self.posicao]
             
-            numberList = [t]+numberList
-    return numberList[0]
+            if(character == ' '):
+                while(character == ' '):
+                    self.posicao = self.posicao+1
+                    if(self.posicao != len(self.origem)):
+                        character = self.origem[self.posicao]
+                    else:
+                        break
+                   
+            if(RepresentsInt(character)):
+                while(RepresentsInt(character)):
+                    number.append(character)
+                    self.posicao = self.posicao+1
+                    if(self.posicao != len(self.origem)):
+                        character = self.origem[self.posicao]
+                    else:
+                        break
+
+                numberToken = ''.join(map(str, number))
+                t = Token('INT', numberToken)
+                self.atual = t
+                del number[:]
+            
+            elif character == "+":
+                t = Token('PLUS', 'null')
+                self.atual = t
+                self.posicao = self.posicao+1 
+
+            elif character is '-':
+                t=Token('MINUS', 'null') 
+                self.atual = t
+                self.posicao = self.posicao+1 
+           
+class Analisador(object):
+
+    def __init__(self,tokens):
+        self.tokens = tokens
+    
+    def analisarExpressao(self):
+        self.tokens.selecionarProximo()
+        if(RepresentsInt(self.tokens.atual.valor)):
+            resultado = int(self.tokens.atual.valor)
+            self.tokens.selecionarProximo()
+            while(self.tokens.atual.tipo != 'FIM'):
+                if(self.tokens.atual.tipo == 'PLUS'):
+                    self.tokens.selecionarProximo()
+                    if(self.tokens.atual.tipo == 'INT'):    
+                        resultado = resultado + int(self.tokens.atual.valor)
+                    else:
+                        return "Erro: Need a number after operator"
+                elif(self.tokens.atual.tipo == 'MINUS'):
+                    self.tokens.selecionarProximo()
+                    if(self.tokens.atual.tipo == 'INT'):
+                        resultado = resultado - int(self.tokens.atual.valor)
+                    else:
+                        return "Erro: Need a number after operator"
+                else:
+                    return "Erro: no operator found" 
+                self.tokens.selecionarProximo()
+        else:
+            return "Erro: Need to start with a number"
+        
+        return ("Resultado= " + str(resultado))    
 
 while True:
     print("escreva uma cadeia de somas e subtracoes: ")
-    exp = raw_input()
-    r = SimpleCalculator(exp)
-    print("resultado= "+ str(r))        
-
-
-
-
-    
-
-    
+    exp = input()
+    tokenizador = Tokenizador(exp,0,'null')
+    analisador = Analisador(tokenizador)
+    r = analisador.analisarExpressao()
+    print(r)
