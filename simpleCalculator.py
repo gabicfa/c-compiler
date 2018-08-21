@@ -49,27 +49,32 @@ class Tokenizador(object):
                         else:
                             character = ""
                             fim_comentario = True
-
                         if(self.origem[self.posicao] == '*'):
-                            if(self.origem[self.posicao+1] == '/'):
-                                self.posicao = self.posicao+1
-                                fim_comentario = True 
-                                if(self.posicao+1 < len(self.origem)):
-                                    marcoFinal = self.posicao+1
-                                    self.origem = self.origem[0:marcoInicial] + self.origem[marcoFinal:]
-                                    self.posicao = marcoInicial
-                                    character = self.origem[self.posicao]
-                                    if(character == ' '):
-                                        while(character == ' '):
-                                            self.posicao = self.posicao+1
-                                            if(self.posicao != len(self.origem)):
-                                                character = self.origem[self.posicao]
-                                            else:
-                                                character = ""
+                            if(self.posicao+1 < len(self.origem)):                              
+                                if(self.origem[self.posicao+1] == '/'):
+                                    self.posicao = self.posicao+1
+                                    fim_comentario = True 
+                                    if(self.posicao+1 < len(self.origem)):
+                                        marcoFinal = self.posicao+1
+                                        self.origem = self.origem[0:marcoInicial] + self.origem[marcoFinal:]
+                                        self.posicao = marcoInicial
+                                        character = self.origem[self.posicao]
+                                        if(character == ' '):
+                                            while(character == ' '):
+                                                self.posicao = self.posicao+1
+                                                if(self.posicao != len(self.origem)):
+                                                    character = self.origem[self.posicao]
+                                                else:
+                                                    character = ""
+                                    else:
+                                        t = Token('FIM', 'null')
+                                        self.atual = t
+                                        character = ""
                                 else:
-                                    t = Token('FIM', 'null')
-                                    self.atual = t
-                                    character = ""
+                                        t = Token('FIM', 'null')
+                                        self.atual = t
+                                        character = ""
+            
             if(RepresentsInt(character)):
                 while(RepresentsInt(character)):
                     number.append(character)
