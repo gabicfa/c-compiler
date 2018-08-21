@@ -27,15 +27,49 @@ class Tokenizador(object):
         
         else:
             character = self.origem[self.posicao]
-            
+
             if(character == ' '):
                 while(character == ' '):
                     self.posicao = self.posicao+1
                     if(self.posicao != len(self.origem)):
                         character = self.origem[self.posicao]
                     else:
-                        break
-                   
+                        character = ""
+
+            if (character is '/'):
+                marcoInicial = self.posicao
+                if(self.origem[self.posicao+1] == '*'):
+                    self.posicao = self.posicao+1
+                    character = self.origem[self.posicao]
+                    fim_comentario = False
+                    while(not fim_comentario):
+                        if(self.posicao+1 < len(self.origem)):
+                            self.posicao = self.posicao+1
+                            character = self.origem[self.posicao]
+                        else:
+                            character = ""
+                            fim_comentario = True
+
+                        if(self.origem[self.posicao] == '*'):
+                            if(self.origem[self.posicao+1] == '/'):
+                                self.posicao = self.posicao+1
+                                fim_comentario = True 
+                                if(self.posicao+1 < len(self.origem)):
+                                    marcoFinal = self.posicao+1
+                                    self.origem = self.origem[0:marcoInicial] + self.origem[marcoFinal:]
+                                    self.posicao = marcoInicial
+                                    character = self.origem[self.posicao]
+                                    if(character == ' '):
+                                        while(character == ' '):
+                                            self.posicao = self.posicao+1
+                                            if(self.posicao != len(self.origem)):
+                                                character = self.origem[self.posicao]
+                                            else:
+                                                character = ""
+                                else:
+                                    t = Token('FIM', 'null')
+                                    self.atual = t
+                                    character = ""
             if(RepresentsInt(character)):
                 while(RepresentsInt(character)):
                     number.append(character)
@@ -59,38 +93,68 @@ class Tokenizador(object):
                 t=Token('MINUS', 'null') 
                 self.atual = t
                 self.posicao = self.posicao+1 
+
+            elif character is '/':
+                t = Token('DIV', 'null')
+                self.atual = t
+                self.posicao = self.posicao+1
+
+            elif character is '*':
+                t = Token('MULT', 'null')
+                self.atual = t
+                self.posicao = self.posicao+1
            
 class Analisador(object):
 
     def __init__(self,tokens):
         self.tokens = tokens
     
-    def analisarExpressao(self):
-        self.tokens.selecionarProximo()
+    def termo(self, resultado):
         if(RepresentsInt(self.tokens.atual.valor)):
             resultado = int(self.tokens.atual.valor)
-            self.tokens.selecionarProximo()
+            while(self.tokens.atual.tipo != 'FIM' and self.tokens.atual.tipo != 'PLUS' and self.tokens.atual.tipo != 'MINUS'):
+                self.tokens.selecionarProximo()
+                if(self.tokens.atual.tipo == 'MULT'):
+                    self.tokens.selecionarProximo()
+                    if(self.tokens.atual.tipo == 'INT'): 
+                        resultado = resultado * int(self.tokens.atual.valor)
+                    else:
+                        return "Erro: Need a number after operator"
+                elif(self.tokens.atual.tipo == 'DIV'):
+                    self.tokens.selecionarProximo()
+                    if(self.tokens.atual.tipo == 'INT'):
+                        resultado = resultado // int(self.tokens.atual.valor)
+                    else:
+                        return "Erro: Need a number after operator"
+                elif(self.tokens.atual.tipo == 'INT'):
+                    return "Erro: no operator found"
+            return resultado
+        else:
+            return "Erro: Need to start with a number"
+    
+    def analisarExpressao(self):
+        resultado = 0
+        self.tokens.selecionarProximo()
+        resultado = self.termo(resultado)
+        if(type(resultado) == str):
+            return resultado
+        else:
             while(self.tokens.atual.tipo != 'FIM'):
                 if(self.tokens.atual.tipo == 'PLUS'):
                     self.tokens.selecionarProximo()
-                    if(self.tokens.atual.tipo == 'INT'):    
-                        resultado = resultado + int(self.tokens.atual.valor)
-                    else:
-                        return "Erro: Need a number after operator"
+                    rT = self.termo(resultado)
+                    if(type(rT) == int):
+                        resultado  = resultado + rT
                 elif(self.tokens.atual.tipo == 'MINUS'):
                     self.tokens.selecionarProximo()
-                    if(self.tokens.atual.tipo == 'INT'):
-                        resultado = resultado - int(self.tokens.atual.valor)
-                    else:
-                        return "Erro: Need a number after operator"
+                    rT = self.termo(resultado)
+                    if(type(rT) == int):
+                        resultado  = resultado - rT
                 else:
                     return "Erro: no operator found" 
-                self.tokens.selecionarProximo()
-        else:
-            return "Erro: Need to start with a number"
+            
+            return ("Resultado= " + str(resultado))   
         
-        return ("Resultado= " + str(resultado))    
-
 while True:
     print("escreva uma cadeia de somas e subtracoes: ")
     exp = input()
