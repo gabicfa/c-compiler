@@ -71,9 +71,15 @@ class Tokenizador(object):
                                         self.atual = t
                                         character = ""
                                 else:
-                                        t = Token('FIM', 'null')
-                                        self.atual = t
-                                        character = ""
+                                    t = Token('FIM', 'null')
+                                    self.atual = t
+                                    character = ""
+
+                    if(self.posicao+1 > len(self.origem)):
+                        t = Token('FIM', 'null')
+                        self.atual = t
+                        character = ""
+                    
             
             if(RepresentsInt(character)):
                 while(RepresentsInt(character)):
