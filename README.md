@@ -1,3 +1,4 @@
 # LogComp
 
-![Diagrama Sintático](DiagramSintatico2.png)
+![Diagrama Sintático](DiagramSintatico3.png)
+
