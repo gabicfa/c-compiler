@@ -1,3 +1,4 @@
+import re
 number =[]
 
 def RepresentsInt(s):
@@ -6,6 +7,25 @@ def RepresentsInt(s):
         return True
     except ValueError:
         return False
+
+class PrePro:
+
+    @staticmethod
+    def espaco(input):
+        espaco_entre_numeros = re.search('[0-9] +[0-9]', input)
+        if espaco_entre_numeros:
+            return "Erro: espaco entre numeros"
+        else:
+            input_sem_espaco = input.replace(" ","")
+        return input_sem_espaco
+
+    @staticmethod
+    def comentarios(input):
+        input_sem_comentarios = re.sub('/\*(.*?)\*/', '', input)
+        input_com_comentario_errado = re.search('/\*', input_sem_comentarios)
+        if input_com_comentario_errado:
+            return "Erro no comentario"
+        return input_sem_comentarios
 
 class Token(object):
 
@@ -20,59 +40,13 @@ class Tokenizador(object):
         self.posicao = posicao
         self.atual = atual
     
-    def prePro(self):
-        pos = 0
-        i=[]
-        f=[]
-        inicio = 0
-        fim = 0
-        while (pos < len(self.origem)):
-            if(self.origem[pos]=='/'):
-                if(pos+1 < len(self.origem) and self.origem[pos+1]=='*'):
-                    inicio = pos
-                    pos+=1
-                    while(pos+1 < len(self.origem) and fim == 0):
-                        pos+=1
-                        if(self.origem[pos] == '*'):
-                            if(pos < len(self.origem) and self.origem[pos+1]=='/'):
-                                pos+=1
-                                if(pos+1 < len(self.origem) and self.origem[pos+1]==' '):
-                                    while(self.origem[pos+1]==' '):
-                                        pos+=1
-                                fim = pos
-                    if(fim != 0):
-                        i.append(inicio)
-                        f.append(fim)
-                        inicio = 0
-                        fim = 0
-                        pos+=1
-                    else:
-                        print("Erro1")
-                        return "Erro"
-                else:
-                    pos+=1
-            else:
-                pos+=1
-        for c in range (len(i)-1,-1,-1):
-            self.origem = self.origem[0:i[c]] + self.origem[f[c]+1:]
-        return self.origem
-
     def selecionarProximo(self):
         if(self.posicao == len(self.origem)):
             t = Token('FIM', 'null')
             self.atual = t
+        
         else:
             character = self.origem[self.posicao]
-            
-            if(character == ' '):
-                while(character == ' '):
-                    self.posicao = self.posicao+1
-                    if(self.posicao != len(self.origem)):
-                        character = self.origem[self.posicao]
-                    else:
-                        break
-                if(self.posicao< len(self.origem)):
-                    character = self.origem[self.posicao]
 
             if(RepresentsInt(character)):
                 while(RepresentsInt(character)):
@@ -143,7 +117,7 @@ class Analisador(object):
                 self.tokens.selecionarProximo()
                 return resultado
             else:
-                return "Error1"
+                return "Erro: parenteses nao fechados"
         return resultado
 
     def termo(self, resultado):
@@ -163,7 +137,7 @@ class Analisador(object):
                     if(type(rF) == int):
                         resultado  = resultado // rF
                 else:
-                    return "Erro2" 
+                    return "Erro" 
             
             return resultado    
            
@@ -185,16 +159,19 @@ class Analisador(object):
                     if(type(rT) == int):
                         resultado  = resultado - rT
                 else:
-                    return "Erro3" 
+                    return "Erro" 
             return int(resultado)
         
 while True:
     print("escreva uma cadeia de somas e subtracoes: ")
     exp = input()
-    tokenizador = Tokenizador(exp,0,'null')
-    p = tokenizador.prePro()
-    if(p != "Erro"):
+    pp = PrePro.espaco(exp)
+    pp = PrePro.comentarios(pp)
+    if(pp[0] != "E"):
+        tokenizador = Tokenizador(pp,0,'null')
         tokenizador.selecionarProximo()
         analisador = Analisador(tokenizador)
         r = analisador.analisarExpressao()
         print(str(r))
+    else:
+        print(pp)
