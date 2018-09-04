@@ -9,7 +9,6 @@ def RepresentsInt(s):
         return False
 
 class PrePro:
-
     @staticmethod
     def espaco(input):
         espaco_entre_numeros = re.search('[0-9] +[0-9]', input)
@@ -26,6 +25,59 @@ class PrePro:
         if input_com_comentario_errado:
             return "Erro no comentario"
         return input_sem_comentarios
+
+class Node:
+    def __init__ (self):
+        self.value = None
+        self.children = []
+    
+    def evaluate(self):
+        pass
+
+class BinOp(Node):
+
+    def __init__(self, value, children):
+        self.value = value
+        self.children = children
+    
+    def evaluate(self):
+        val_esq = self.children[0].evaluate()
+        val_dir = self.children[1].evaluate()
+        if self.value == 'PLUS':
+            return val_esq + val_dir
+        elif self.value == 'MINUS':
+            return val_esq - val_dir
+        elif self.value == 'MULT':
+            return val_esq * val_dir
+        elif self.value == 'DIV':
+            return val_esq // val_dir
+
+class UnOp(Node):
+    def __init__ (self, value, children):
+        self.value = value
+        self.children = children
+    
+    def evaluate(self):
+        child = self.children[0].evaluate()
+        if self.value == 'PLUS':
+            return child
+        elif self.value == 'MINUS':
+            return -child
+
+class IntVal(Node):
+    def __init__(self,value):
+        self.value = value
+        self.children = []
+    
+    def evaluate(self):
+        return self.value
+
+class NoOp(Node):
+    def __init__(self):
+        self.value = None
+        self.children = []
+    def evaluate(self):
+        pass
 
 class Token(object):
 
@@ -97,22 +149,22 @@ class Analisador(object):
     def __init__(self,tokens):
         self.tokens = tokens
     
-    def fator(self, resultado):
+    def fator(self):
+
         if(self.tokens.atual.tipo == 'PLUS'):
+            op = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
-            rF =  self.fator(resultado)
-            resultado = resultado + rF
+            resultado = UnOp(op, [self.fator()])
         elif(self.tokens.atual.tipo == 'MINUS'):
+            op = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
-            rF =  self.fator(resultado)
-            resultado = resultado - rF
+            resultado = UnOp(op, [self.fator()])
         elif(self.tokens.atual.tipo == 'INT'):
-            resultado = int(self.tokens.atual.valor)
+            resultado = IntVal(int(self.tokens.atual.valor))
             self.tokens.selecionarProximo()
         elif(self.tokens.atual.tipo == 'OPEN_P'):
             self.tokens.selecionarProximo()
-            rE = self.analisarExpressao()
-            resultado = rE
+            resultado = self.analisarExpressao()
             if(self.tokens.atual.tipo == 'CLOSE_P'):
                 self.tokens.selecionarProximo()
                 return resultado
@@ -120,50 +172,24 @@ class Analisador(object):
                 return "Erro: parenteses nao fechados"
         return resultado
 
-    def termo(self, resultado):
-        resultado = self.fator(resultado)
-        if(type(resultado) == str):
-            return resultado
-        else:
-            while(self.tokens.atual.tipo == 'MULT' or self.tokens.atual.tipo == 'DIV'):
-                if(self.tokens.atual.tipo == 'MULT'):
-                    self.tokens.selecionarProximo()
-                    rF = self.fator(resultado)
-                    if(type(rF) == int):
-                        resultado  = resultado * rF
-                elif(self.tokens.atual.tipo == 'DIV'):
-                    self.tokens.selecionarProximo()
-                    rF = self.termo(resultado)
-                    if(type(rF) == int):
-                        resultado  = resultado // rF
-                else:
-                    return "Erro" 
-            
-            return resultado    
+    def termo(self):
+        resultado = self.fator()
+        while(self.tokens.atual.tipo == 'MULT' or self.tokens.atual.tipo == 'DIV'):
+            op = self.tokens.atual.tipo
+            self.tokens.selecionarProximo()
+            resultado  = BinOp(op, [resultado, self.fator()])
+        return resultado 
            
     def analisarExpressao(self):
-        resultado = 0
-        resultado = self.termo(resultado)
-        if(type(resultado) == str):
-            return resultado
-        else:
-            while(self.tokens.atual.tipo == 'PLUS' or self.tokens.atual.tipo == 'MINUS'):
-                if(self.tokens.atual.tipo == 'PLUS'):
-                    self.tokens.selecionarProximo()
-                    rT = self.termo(resultado)
-                    if(type(rT) == int):
-                        resultado  = resultado + rT
-                elif(self.tokens.atual.tipo == 'MINUS'):
-                    self.tokens.selecionarProximo()
-                    rT = self.termo(resultado)
-                    if(type(rT) == int):
-                        resultado  = resultado - rT
-                else:
-                    return "Erro" 
-            return int(resultado)
+        resultado = self.termo()
+        while(self.tokens.atual.tipo == 'PLUS' or self.tokens.atual.tipo == 'MINUS'):
+            op = self.tokens.atual.tipo
+            self.tokens.selecionarProximo()
+            resultado  = BinOp(op, [resultado, self.termo()])
+        return resultado
         
 while True:
-    print("escreva uma cadeia de somas e subtracoes: ")
+    print("escreva uma cadeia de somas, subtracoes, multiplicacoes e divisoes: ")
     exp = input()
     pp = PrePro.espaco(exp)
     pp = PrePro.comentarios(pp)
@@ -172,6 +198,6 @@ while True:
         tokenizador.selecionarProximo()
         analisador = Analisador(tokenizador)
         r = analisador.analisarExpressao()
-        print(str(r))
+        print(r.evaluate())
     else:
         print(pp)
