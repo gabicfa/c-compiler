@@ -172,9 +172,9 @@ class Analisador(object):
                 self.tokens.selecionarProximo()
                 return resultado
             else:
-                return "Erro: parenteses nao fechados"
+                raise Exception("parenteses nao fechados")
         else:
-            return "Erro"
+            raise Exception("error no fator")
 
     def termo(self):
         resultado = self.fator()
@@ -199,13 +199,15 @@ while (run == 1):
         l = line.strip()
         pp = PrePro.espaco(l)
         pp = PrePro.comentarios(pp)
-        if(pp[0] != "E"):
-            print(pp)
-            tokenizador = Tokenizador(pp,0,'null')
-            tokenizador.selecionarProximo()
-            analisador = Analisador(tokenizador)
-            r = analisador.analisarExpressao()
+        print(pp)
+        tokenizador = Tokenizador(pp,0,'null')
+        tokenizador.selecionarProximo()
+        analisador = Analisador(tokenizador)
+        r = analisador.analisarExpressao()
+        
+        if(tokenizador.atual.tipo == 'FIM'):
             print(r.evaluate())
         else:
-            print(pp)
+            raise Exception("terminou antes do fim da string")
+
     run=0
