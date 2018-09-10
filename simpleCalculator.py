@@ -155,13 +155,16 @@ class Analisador(object):
             op = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
             resultado = UnOp(op, [self.fator()])
+            return resultado
         elif(self.tokens.atual.tipo == 'MINUS'):
             op = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
             resultado = UnOp(op, [self.fator()])
+            return resultado
         elif(self.tokens.atual.tipo == 'INT'):
             resultado = IntVal(int(self.tokens.atual.valor))
             self.tokens.selecionarProximo()
+            return resultado
         elif(self.tokens.atual.tipo == 'OPEN_P'):
             self.tokens.selecionarProximo()
             resultado = self.analisarExpressao()
@@ -170,7 +173,8 @@ class Analisador(object):
                 return resultado
             else:
                 return "Erro: parenteses nao fechados"
-        return resultado
+        else:
+            return "Erro"
 
     def termo(self):
         resultado = self.fator()
@@ -188,16 +192,20 @@ class Analisador(object):
             resultado  = BinOp(op, [resultado, self.termo()])
         return resultado
         
-while True:
-    print("escreva uma cadeia de somas, subtracoes, multiplicacoes e divisoes: ")
-    exp = input()
-    pp = PrePro.espaco(exp)
-    pp = PrePro.comentarios(pp)
-    if(pp[0] != "E"):
-        tokenizador = Tokenizador(pp,0,'null')
-        tokenizador.selecionarProximo()
-        analisador = Analisador(tokenizador)
-        r = analisador.analisarExpressao()
-        print(r.evaluate())
-    else:
-        print(pp)
+run = 1
+while (run == 1):
+    inputFile = open("input.c", "r")
+    for line in inputFile:
+        l = line.strip()
+        pp = PrePro.espaco(l)
+        pp = PrePro.comentarios(pp)
+        if(pp[0] != "E"):
+            print(pp)
+            tokenizador = Tokenizador(pp,0,'null')
+            tokenizador.selecionarProximo()
+            analisador = Analisador(tokenizador)
+            r = analisador.analisarExpressao()
+            print(r.evaluate())
+        else:
+            print(pp)
+    run=0
