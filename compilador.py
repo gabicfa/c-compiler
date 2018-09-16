@@ -14,8 +14,9 @@ class PrePro:
 
         espaco_entre_numeros = re.search('[0-9] +[0-9]', inputFileString)
         espaco_entre_numeros_e_letras = re.search('[a-z] +[0-9]', inputFileString)
+
         if espaco_entre_numeros or espaco_entre_numeros_e_letras:
-            raise Exception("espaço errado")
+            raise Exception("Erro nos espaços")
         else:
             input_sem_espaco = inputFileString.replace(" ","")
             return input_sem_espaco
@@ -66,7 +67,7 @@ class BinOp(Node):
             elif self.value == 'DIV':
                 return val_esq // val_dir
             else:
-                raise Exception("Erro no binop")
+                raise Exception("Erro no Binop")
 
 class UnOp(Node):
     def __init__ (self, value, children):
@@ -82,7 +83,7 @@ class UnOp(Node):
         elif self.value == 'PRINTF':
             print(child)
         else:
-            raise Exception("Erro no unop")
+            raise Exception("Erro no UnOp")
 
 class IntVal(Node):
     def __init__(self,value):
@@ -131,10 +132,11 @@ class Tokenizador(object):
         self.atual = atual
     
     def selecionarProximo(self):
+
         if(self.posicao == len(self.origem)):
             t = Token('FIM', 'null')
             self.atual = t
-        
+            
         else:
             character = self.origem[self.posicao]
 
@@ -224,7 +226,78 @@ class Analisador(object):
     def __init__(self,tokens,table):
         self.tokens = tokens
         self.table = table
+
+    def comandos(self):
+        if(self.tokens.atual.tipo == 'OPEN_C'):
+            self.tokens.selecionarProximo()
+            comandosChildren = []
+            while(self.tokens.atual.tipo != 'CLOSE_C'):
+                cmd = self.comando()
+                if(cmd == None):
+                    break
+                comandosChildren.append(cmd)
+                if(self.tokens.atual.tipo == 'SEMICOLON' or self.tokens.atual.tipo == 'CLOSE_C'):
+                    self.tokens.selecionarProximo() 
+                else:
+                    raise Exception("Erro: Ponto e virgula")
+            if(self.tokens.atual.tipo == 'CLOSE_C'):
+                return CmdsOp(None, comandosChildren)
+            else:
+                raise Exception("Erro: Fechar Chaves")
+        else:
+            raise Exception ("Erro: Abrir Chaves")    
     
+    def comando(self):
+        if(self.tokens.atual.tipo == 'VAR'):
+            return self.atribuicao()
+        elif(self.tokens.atual.tipo == 'PRINTF'):
+            self.tokens.selecionarProximo()
+            return self.print()
+        elif(self.tokens.atual.tipo == 'OPEN_C'):
+            return self.comandos()
+        elif(self.tokens.atual.tipo == 'CLOSE_C'):
+            return None
+        else:
+            raise Exception("Erro no comando")
+    
+    def print(self):
+        if(self.tokens.atual.tipo == 'OPEN_P'):
+            self.tokens.selecionarProximo()
+            resultado = UnOp('PRINTF', [self.expressao()])
+            if(self.tokens.atual.tipo=='CLOSE_P'):
+                self.tokens.selecionarProximo()
+                return resultado
+            else:
+                raise Exception("Erro: Fechar parenteses")
+        else:
+            raise Exception("Erro: Abrir parenteses")
+
+    def atribuicao(self):
+        name = self.tokens.atual.valor
+        self.tokens.selecionarProximo()
+        if(self.tokens.atual.tipo == 'EQUAL'):
+            self.tokens.selecionarProximo()
+            resultado = self.expressao()
+            return BinOp('EQUAL',[name, resultado])
+        else:
+            raise Exception("Erro: Inserir '=' ")
+
+    def expressao(self):
+        resultado = self.termo()
+        while(self.tokens.atual.tipo == 'PLUS' or self.tokens.atual.tipo == 'MINUS'):
+            op = self.tokens.atual.tipo
+            self.tokens.selecionarProximo()
+            resultado  = BinOp(op, [resultado, self.termo()])
+        return resultado
+    
+    def termo(self):
+        resultado = self.fator()
+        while(self.tokens.atual.tipo == 'MULT' or self.tokens.atual.tipo == 'DIV'):
+            op = self.tokens.atual.tipo
+            self.tokens.selecionarProximo()
+            resultado  = BinOp(op, [resultado, self.fator()])
+        return resultado 
+       
     def fator(self):
 
         if(self.tokens.atual.tipo == 'PLUS'):
@@ -248,93 +321,22 @@ class Analisador(object):
                 self.tokens.selecionarProximo()
                 return resultado
             else:
-                raise Exception("parenteses nao fechados")
+                raise Exception("Erro: Fechar parenteses")
         elif(self.tokens.atual.tipo == 'VAR'):
             resultado = VarVal(self.tokens.atual.valor)
             self.tokens.selecionarProximo()
             return resultado
         else:
-            raise Exception("error no fator")
+            raise Exception("Erro no fator")
+    
+if __name__ == "__main__":
 
-    def termo(self):
-        resultado = self.fator()
-        while(self.tokens.atual.tipo == 'MULT' or self.tokens.atual.tipo == 'DIV'):
-            op = self.tokens.atual.tipo
-            self.tokens.selecionarProximo()
-            resultado  = BinOp(op, [resultado, self.fator()])
-        return resultado 
-           
-    def expressao(self):
-        resultado = self.termo()
-        while(self.tokens.atual.tipo == 'PLUS' or self.tokens.atual.tipo == 'MINUS'):
-            op = self.tokens.atual.tipo
-            self.tokens.selecionarProximo()
-            resultado  = BinOp(op, [resultado, self.termo()])
-        return resultado
-    
-    def comandos(self):
-        if(self.tokens.atual.tipo == 'OPEN_C'):
-            self.tokens.selecionarProximo()
-            comandosChildren = []
-            while(self.tokens.atual.tipo != 'CLOSE_C'):
-                cmd = self.comando()
-                if(cmd == None):
-                    break
-                comandosChildren.append(cmd)
-                if(self.tokens.atual.tipo == 'SEMICOLON' or self.tokens.atual.tipo == 'CLOSE_C'):
-                    self.tokens.selecionarProximo() 
-                else:
-                    raise Exception("sem ponto e virgula")
-            if(self.tokens.atual.tipo == 'CLOSE_C'):
-                return CmdsOp(None, comandosChildren)
-            else:
-                raise Exception("sem fechar chaves")
-        else:
-            raise Exception ("Abrir chaves")    
-
-    def comando(self):
-        if(self.tokens.atual.tipo == 'VAR'):
-            return self.atribuicao()
-        elif(self.tokens.atual.tipo == 'PRINTF'):
-            self.tokens.selecionarProximo()
-            return self.print()
-        elif(self.tokens.atual.tipo == 'OPEN_C'):
-            return self.comandos()
-        elif(self.tokens.atual.tipo == 'CLOSE_C'):
-            return None
-        else:
-            raise Exception("Erro no comando")
-    
-    def atribuicao(self):
-        name = self.tokens.atual.valor
-        self.tokens.selecionarProximo()
-        if(self.tokens.atual.tipo == 'EQUAL'):
-            self.tokens.selecionarProximo()
-            resultado = self.expressao()
-            return BinOp('EQUAL',[name, resultado])
-        else:
-            raise Exception("Falta igual")
-    
-    def print(self):
-        if(self.tokens.atual.tipo == 'OPEN_P'):
-            self.tokens.selecionarProximo()
-            resultado = UnOp('PRINTF', [self.expressao()])
-            if(self.tokens.atual.tipo=='CLOSE_P'):
-                self.tokens.selecionarProximo()
-                return resultado
-            else:
-                raise Exception("Nao fechou parenteses")
-        else:
-            raise Exception("Erro no print")
-            
-run = 1
-while (run == 1):
     inputFile = open("input.c", "r")
-    pp = PrePro.espaco(inputFile)
-    pp = PrePro.comentarios(pp)
+    inputFile = PrePro.espaco(inputFile)
+    inputFile = PrePro.comentarios(inputFile)
 
     table = SymbleTable()
-    tokenizador = Tokenizador(pp,0,'null')
+    tokenizador = Tokenizador(inputFile,0,'null')
     tokenizador.selecionarProximo()
     analisador = Analisador(tokenizador, table)
     r = analisador.comandos()
@@ -343,6 +345,5 @@ while (run == 1):
     if(tokenizador.atual.tipo == 'FIM'):
         r.evaluate(table)
     else:
-        raise Exception("terminou antes do fim da string")
+        raise Exception("Erro: Análise terminou antes do fim do arquivo de entrada")
 
-    run=0
