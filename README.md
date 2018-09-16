@@ -1,6 +1,6 @@
 # LogComp
 
-![Diagrama Sintático](DiagramaSintatico4.png)
+![Diagrama Sintático](DiagramaSintatico4.png = 250x)
 
 EBNF:
 
