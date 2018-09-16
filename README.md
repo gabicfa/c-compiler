@@ -1,7 +1,7 @@
 # LogComp
 
 ### Diagrama Sintático
-![Diagrama Sintático](DiagramaSintatico4.png)
+![Diagrama Sintático](./DiagramSintatico/DiagramaSintatico4.png)
 
 ### EBNF:
 ```
