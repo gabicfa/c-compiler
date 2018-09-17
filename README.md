@@ -1,7 +1,7 @@
 # LogComp
 
 ### Diagrama Sintático
-![](DiagramaSintatico/DiagramaSintatic04.png)
+![](DiagramaSintatico/DiagramaSintatico4.png)
 ### EBNF:
 ```
 comandos = “{”, comando, “;”, { comando, “;” }, “}” ;
