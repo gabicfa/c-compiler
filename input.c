@@ -11,7 +11,7 @@
         printf(z);
         printf(z_2);
         printf(x - -y);
-    }
+    };
 
     w = (x+y)/y_2;
     printf(    /* bla */ w /* bla */);

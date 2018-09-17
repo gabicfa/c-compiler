@@ -233,10 +233,8 @@ class Analisador(object):
             comandosChildren = []
             while(self.tokens.atual.tipo != 'CLOSE_C'):
                 cmd = self.comando()
-                if(cmd == None):
-                    break
                 comandosChildren.append(cmd)
-                if(self.tokens.atual.tipo == 'SEMICOLON' or self.tokens.atual.tipo == 'CLOSE_C'):
+                if(self.tokens.atual.tipo == 'SEMICOLON'):
                     self.tokens.selecionarProximo() 
                 else:
                     raise Exception("Erro: Ponto e virgula")
@@ -254,9 +252,9 @@ class Analisador(object):
             self.tokens.selecionarProximo()
             return self.print()
         elif(self.tokens.atual.tipo == 'OPEN_C'):
-            return self.comandos()
-        elif(self.tokens.atual.tipo == 'CLOSE_C'):
-            return None
+            resultado = self.comandos()
+            self.tokens.selecionarProximo()
+            return resultado
         else:
             raise Exception("Erro no comando")
     
