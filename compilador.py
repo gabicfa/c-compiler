@@ -46,6 +46,26 @@ class CmdsOp(Node):
         for child in self.children:
             child.evaluate(table)
 
+class TriOp(Node):
+
+    def __init__(self, value, children):
+        self.value = value
+        self.children = children
+    
+    def evaluate(self, table):
+        if(self.value == 'IF'):
+            val_exp = self.children[0].evaluate(table)
+            if(self.children[2] != None):
+                if(val_exp):
+                    self.children[1].evaluate(table)
+                else:
+                    self.children[2].evaluate(table)
+            else:
+                if(val_exp):
+                    self.children[1].evaluate(table)
+        else:
+            raise Exception("Erro no Triop")
+    
 class BinOp(Node):
 
     def __init__(self, value, children):
@@ -53,21 +73,36 @@ class BinOp(Node):
         self.children = children
     
     def evaluate(self, table):
-        if self.value ==  'EQUAL':
+        if self.value ==  'ATRI':
             table.set(self.children[0], self.children[1].evaluate(table))
         else:
             val_esq = self.children[0].evaluate(table)
-            val_dir = self.children[1].evaluate(table)
-            if self.value == 'PLUS':
-                return val_esq + val_dir
-            elif self.value == 'MINUS':
-                return val_esq - val_dir
-            elif self.value == 'MULT':
-                return val_esq * val_dir
-            elif self.value == 'DIV':
-                return val_esq // val_dir
+            if self.value == 'WHILE':
+                while(val_esq):
+                    self.children[1].evaluate(table)
+                    val_esq = self.children[0].evaluate(table)
             else:
-                raise Exception("Erro no Binop")
+                val_dir = self.children[1].evaluate(table)
+                if self.value == 'PLUS':
+                    return val_esq + val_dir
+                elif self.value == 'MINUS':
+                    return val_esq - val_dir
+                elif self.value == 'MULT':
+                    return val_esq * val_dir
+                elif self.value == 'DIV':
+                    return val_esq // val_dir
+                elif self.value == 'AND':
+                    return val_esq and val_dir
+                elif self.value == 'OR':
+                    return val_esq or val_dir
+                elif self.value == 'GREATER':
+                    return val_esq > val_dir
+                elif self.value == 'LESS':
+                    return val_esq < val_dir
+                elif self.value == 'EQUAL':
+                    return val_esq == val_dir
+                else:
+                    raise Exception("Erro no Binop")
 
 class UnOp(Node):
     def __init__ (self, value, children):
@@ -82,6 +117,8 @@ class UnOp(Node):
             return -child
         elif self.value == 'PRINTF':
             print(child)
+        elif self.value == 'NOT':
+            return not child
         else:
             raise Exception("Erro no UnOp")
 
@@ -100,6 +137,14 @@ class VarVal(Node):
     
     def evaluate(self, table):
         return table.get(self.value)
+
+class Scanf(Node):
+    def __init__(self,value):
+        self.value = value
+        self.children = []
+    
+    def evaluate(self, table):
+        return int(input())
 
 class NoOp(Node):
     def __init__(self):
@@ -166,6 +211,14 @@ class Tokenizador(object):
                 stringToken = ''.join(map(str, string))
                 if(stringToken == "printf"):    
                     t = Token('PRINTF', stringToken)
+                elif(stringToken == "scanf"):    
+                    t = Token('SCANF', stringToken)
+                elif(stringToken == "if"):    
+                    t = Token('IF', stringToken)
+                elif(stringToken == "else"):    
+                    t = Token('ELSE', stringToken)
+                elif(stringToken == "while"):    
+                    t = Token('WHILE', stringToken)
                 else:
                     t = Token('VAR', stringToken)
                 self.atual = t
@@ -212,15 +265,50 @@ class Tokenizador(object):
                 self.posicao = self.posicao+1
             
             elif character == '=':
-                t = Token('EQUAL','null')
-                self.atual = t
-                self.posicao = self.posicao+1
+                if(self.origem[self.posicao+1] != '='):
+                    t = Token('ATRI','null')
+                    self.atual = t
+                    self.posicao = self.posicao+1
+                else:
+                    self.posicao = self.posicao+1
+                    t = Token('EQUAL','null')
+                    self.atual = t
+                    self.posicao = self.posicao+1
             
             elif character == ';':
                 t = Token('SEMICOLON','null')
                 self.atual = t
                 self.posicao = self.posicao+1
-    
+            
+            elif character == '&':
+                if(self.origem[self.posicao+1] == '&'):
+                    self.posicao = self.posicao+1
+                    t = Token('AND','null')
+                    self.atual = t
+                    self.posicao = self.posicao+1
+
+            elif character == '|':
+                if(self.origem[self.posicao+1] == '|'):
+                    self.posicao = self.posicao+1
+                    t = Token('OR','null')
+                    self.atual = t
+                    self.posicao = self.posicao+1
+            
+            elif character == '!':
+                t = Token('NOT','null')
+                self.atual = t
+                self.posicao = self.posicao+1
+            
+            elif character == '>':
+                t = Token('GREATER','null')
+                self.atual = t
+                self.posicao = self.posicao+1
+            
+            elif character == '<':
+                t = Token('LESS','null')
+                self.atual = t
+                self.posicao = self.posicao+1
+   
 class Analisador(object):
 
     def __init__(self,tokens,table):
@@ -255,9 +343,48 @@ class Analisador(object):
             resultado = self.comandos()
             self.tokens.selecionarProximo()
             return resultado
+        elif(self.tokens.atual.tipo == 'IF'):
+            return self.ifExp()
+        elif(self.tokens.atual.tipo == 'WHILE'):
+            resultado = self.whileExp()
+            return resultado
         else:
             raise Exception("Erro no comando")
     
+    def whileExp(self):
+        self.tokens.selecionarProximo()
+        if(self.tokens.atual.tipo == "OPEN_P"):
+            self.tokens.selecionarProximo()
+            resultado1 = self.booleanexp()
+            if(self.tokens.atual.tipo == "CLOSE_P"):
+                self.tokens.selecionarProximo()
+                resultado2 = self.comando()
+                # self.tokens.selecionarProximo()
+                return BinOp('WHILE', [resultado1, resultado2])
+            else:
+                raise Exception("Erro: fechar parentases no while")
+        else:
+            raise Exception("Erro: abir parentases no while")
+
+    def ifExp(self):
+        self.tokens.selecionarProximo()
+        if(self.tokens.atual.tipo == "OPEN_P"):
+            self.tokens.selecionarProximo()
+            resultado1 = self.booleanexp()
+            if(self.tokens.atual.tipo == "CLOSE_P"):
+                self.tokens.selecionarProximo()
+                resultado2 = self.comando()
+                if(self.tokens.atual.tipo == "ELSE"):
+                    self.tokens.selecionarProximo()
+                    resultado3 = self.comando()
+                else:
+                    resultado3 = None
+                return TriOp('IF', [resultado1, resultado2, resultado3])
+            else:
+                raise Exception("Erro: fechar parentases no if")
+        else:
+            raise Exception("Erro: abrir parentases no if")
+
     def print(self):
         if(self.tokens.atual.tipo == 'OPEN_P'):
             self.tokens.selecionarProximo()
@@ -273,10 +400,19 @@ class Analisador(object):
     def atribuicao(self):
         name = self.tokens.atual.valor
         self.tokens.selecionarProximo()
-        if(self.tokens.atual.tipo == 'EQUAL'):
+        if(self.tokens.atual.tipo == 'ATRI'):
             self.tokens.selecionarProximo()
-            resultado = self.expressao()
-            return BinOp('EQUAL',[name, resultado])
+            if(self.tokens.atual.tipo == 'SCANF'):
+                self.tokens.selecionarProximo()
+                if(self.tokens.atual.tipo == 'OPEN_P'):
+                    self.tokens.selecionarProximo()
+                    if(self.tokens.atual.tipo == 'CLOSE_P'):
+                        self.tokens.selecionarProximo()
+                        resultado = Scanf('SCANF')
+                        return BinOp('ATRI',[name, resultado])
+            else:
+                resultado = self.expressao()
+                return BinOp('ATRI',[name, resultado])
         else:
             raise Exception("Erro: Inserir '=' ")
 
@@ -297,7 +433,6 @@ class Analisador(object):
         return resultado 
        
     def fator(self):
-
         if(self.tokens.atual.tipo == 'PLUS'):
             op = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
@@ -327,6 +462,39 @@ class Analisador(object):
         else:
             raise Exception("Erro no fator")
     
+    def booleanexp(self):
+        resultado = self.booleanterm()
+        while(self.tokens.atual.tipo == 'OR'):
+            op = self.tokens.atual.tipo
+            self.tokens.selecionarProximo()
+            resultado = BinOp(op,[resultado, self.booleanterm()])
+        return resultado
+    
+    def booleanterm(self):
+        resultado = self.booleanfactor()
+        while(self.tokens.atual.tipo == 'AND'):
+            op = self.tokens.atual.tipo
+            self.tokens.selecionarProximo()
+            resultado = BinOp(op,[resultado, self.booleanfactor()])
+        return resultado
+
+    def booleanfactor(self):
+        if(self.tokens.atual.tipo == 'NOT'):
+            op = self.tokens.atual.tipo
+            self.tokens.selecionarProximo()
+            return UnOp(op,[self.booleanfactor()])
+        else:
+            return self.relExp()
+    
+    def relExp(self):
+        resultado = self.expressao()
+        if(self.tokens.atual.tipo == 'GREATER' or self.tokens.atual.tipo == 'LESS' or self.tokens.atual.tipo == 'EQUAL'):
+            op = self.tokens.atual.tipo
+            self.tokens.selecionarProximo()
+            return BinOp(op, [resultado, self.expressao()])
+        else:
+            raise Exception("Erro: relOp errado")
+
 if __name__ == "__main__":
 
     inputFile = open("input.c", "r")
