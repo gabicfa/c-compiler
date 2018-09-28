@@ -6,16 +6,18 @@
 ![](DiagramaSintatico/DS_v2.2(3).png)
 ### EBNF:
 ```
-comandos = “{”, comando, “;”, { comando, “;” }, “}” ;
-comando = atribuição | comandos | print;
-print = printf, “(”, expressão, “)” ;
-atribuição = identificador, “=”, expressão ;
-expressão = termo, { (“+” | “-”), termo } ;
-termo = fator, { (“*” | “/”), fator } ;
-fator = (“+” | “-”), fator | número | “(”, expressão, “)” | identificador ;
+comandos = "{", comando, ";", { comando, ";" }, "}" ;
+comando = atribuição | comandos | print | if | while;
+print = printf, "(", expressão, ")" ;
+atribuição = identificador, "=", (expressão | "scanf", "(", ")" ) ;
+expressão = termo, { ("+" | "-"), termo } ;
+termo = fator, { ("*" | "/"), fator } ;
+fator = ("+" | "-"), fator | número | "(", expressão, ")" | identificador ;
 printf = "printf";
-identificador = letra, { letra | digito | “_” } ;
-número = dígito, { dígito } ;
-letra = ( a | ... | z | A | ... | Z ) ;
-dígito = ( 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 0 ) ;
+while = "while","(", booleanExp , ")", comando;
+if = "if", "(", booleanExp, ")", comando, ( | "else", comando);
+booleanExp = booleanTerm, { "||" , booleanTerm};
+booleanTerm = booleanFactor, { "&&" , booleanFactor};
+booleanFactor = RelExp | "!", booleanFactor;
+RelExp = expressão, (">"| "==" | "<"), expressão ;
 ```
