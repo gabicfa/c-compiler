@@ -1,5 +1,5 @@
 import re
-inputFileList = []
+input_file_list = []
 number =[]
 string = []
 
@@ -9,16 +9,16 @@ class PrePro:
         for line in input:
             for char in line:
                 if(char != "\n"):
-                    inputFileList.append(char)
-        inputFileString = ''.join(map(str, inputFileList))
+                    input_file_list.append(char)
+        input_file_string = ''.join(map(str, input_file_list))
 
-        espaco_entre_numeros = re.search('[0-9] +[0-9]', inputFileString)
-        espaco_entre_numeros_e_letras = re.search('[a-z] +[0-9]', inputFileString)
+        espaco_entre_numeros = re.search('[0-9] +[0-9]', input_file_string)
+        espaco_entre_numeros_e_letras = re.search('[a-z] +[0-9]', input_file_string)
 
         if espaco_entre_numeros or espaco_entre_numeros_e_letras:
             raise Exception("Erro nos espaços")
         else:
-            input_sem_espaco = inputFileString.replace(" ","")
+            input_sem_espaco = input_file_string.replace(" ","")
             return input_sem_espaco
 
     @staticmethod
@@ -37,21 +37,12 @@ class Node:
     def evaluate(self, table):
         pass
 
-class CmdsOp(Node):
-    def __init__ (self,value, children):
-        self.value = value
-        self.children = children
-    
+class CmdsOp(Node):    
     def evaluate(self, table):
         for child in self.children:
             child.evaluate(table)
 
 class TriOp(Node):
-
-    def __init__(self, value, children):
-        self.value = value
-        self.children = children
-    
     def evaluate(self, table):
         if(self.value == 'IF'):
             val_exp = self.children[0].evaluate(table)
@@ -67,11 +58,6 @@ class TriOp(Node):
             raise Exception("Erro no Triop")
     
 class BinOp(Node):
-
-    def __init__(self, value, children):
-        self.value = value
-        self.children = children
-    
     def evaluate(self, table):
         if self.value ==  'ATRI':
             table.set(self.children[0], self.children[1].evaluate(table))
@@ -105,10 +91,6 @@ class BinOp(Node):
                     raise Exception("Erro no Binop")
 
 class UnOp(Node):
-    def __init__ (self, value, children):
-        self.value = value
-        self.children = children
-    
     def evaluate(self,table):
         child = self.children[0].evaluate(table)
         if self.value == 'PLUS':
@@ -123,26 +105,14 @@ class UnOp(Node):
             raise Exception("Erro no UnOp")
 
 class IntVal(Node):
-    def __init__(self,value):
-        self.value = value
-        self.children = []
-    
     def evaluate(self,table):
         return int(self.value)
 
 class VarVal(Node):
-    def __init__(self,value):
-        self.value = value
-        self.children = []
-    
     def evaluate(self, table):
         return table.get(self.value)
 
 class Scanf(Node):
-    def __init__(self,value):
-        self.value = value
-        self.children = []
-    
     def evaluate(self, table):
         return int(input())
 
@@ -150,6 +120,7 @@ class NoOp(Node):
     def __init__(self):
         self.value = None
         self.children = []
+
     def evaluate(self, table):
         pass
 
@@ -194,8 +165,8 @@ class Tokenizador(object):
                     else:
                         break
 
-                numberToken = ''.join(map(str, number))
-                t = Token('INT', numberToken)
+                number_token = ''.join(map(str, number))
+                t = Token('INT', number_token)
                 self.atual = t
                 del number[:]
             
@@ -208,19 +179,19 @@ class Tokenizador(object):
                     else:
                         break
 
-                stringToken = ''.join(map(str, string))
-                if(stringToken == "printf"):    
-                    t = Token('PRINTF', stringToken)
-                elif(stringToken == "scanf"):    
-                    t = Token('SCANF', stringToken)
-                elif(stringToken == "if"):    
-                    t = Token('IF', stringToken)
-                elif(stringToken == "else"):    
-                    t = Token('ELSE', stringToken)
-                elif(stringToken == "while"):    
-                    t = Token('WHILE', stringToken)
+                string_token = ''.join(map(str, string))
+                if(string_token == "printf"):    
+                    t = Token('PRINTF', string_token)
+                elif(string_token == "scanf"):    
+                    t = Token('SCANF', string_token)
+                elif(string_token == "if"):    
+                    t = Token('IF', string_token)
+                elif(string_token == "else"):    
+                    t = Token('ELSE', string_token)
+                elif(string_token == "while"):    
+                    t = Token('WHILE', string_token)
                 else:
-                    t = Token('VAR', stringToken)
+                    t = Token('VAR', string_token)
                 self.atual = t
                 del string[:]
             
@@ -318,16 +289,16 @@ class Analisador(object):
     def comandos(self):
         if(self.tokens.atual.tipo == 'OPEN_C'):
             self.tokens.selecionarProximo()
-            comandosChildren = []
+            comandos_children = []
             while(self.tokens.atual.tipo != 'CLOSE_C'):
                 cmd = self.comando()
-                comandosChildren.append(cmd)
+                comandos_children.append(cmd)
                 if(self.tokens.atual.tipo == 'SEMICOLON'):
                     self.tokens.selecionarProximo() 
                 else:
                     raise Exception("Erro: Ponto e virgula")
             if(self.tokens.atual.tipo == 'CLOSE_C'):
-                return CmdsOp(None, comandosChildren)
+                return CmdsOp(None, comandos_children)
             else:
                 raise Exception("Erro: Fechar Chaves")
         else:
@@ -355,11 +326,10 @@ class Analisador(object):
         self.tokens.selecionarProximo()
         if(self.tokens.atual.tipo == "OPEN_P"):
             self.tokens.selecionarProximo()
-            resultado1 = self.booleanexp()
+            resultado1 = self.booleanExp()
             if(self.tokens.atual.tipo == "CLOSE_P"):
                 self.tokens.selecionarProximo()
                 resultado2 = self.comando()
-                # self.tokens.selecionarProximo()
                 return BinOp('WHILE', [resultado1, resultado2])
             else:
                 raise Exception("Erro: fechar parentases no while")
@@ -370,7 +340,7 @@ class Analisador(object):
         self.tokens.selecionarProximo()
         if(self.tokens.atual.tipo == "OPEN_P"):
             self.tokens.selecionarProximo()
-            resultado1 = self.booleanexp()
+            resultado1 = self.booleanExp()
             if(self.tokens.atual.tipo == "CLOSE_P"):
                 self.tokens.selecionarProximo()
                 resultado2 = self.comando()
@@ -408,7 +378,7 @@ class Analisador(object):
                     self.tokens.selecionarProximo()
                     if(self.tokens.atual.tipo == 'CLOSE_P'):
                         self.tokens.selecionarProximo()
-                        resultado = Scanf('SCANF')
+                        resultado = Scanf('SCANF',[])
                         return BinOp('ATRI',[name, resultado])
             else:
                 resultado = self.expressao()
@@ -444,7 +414,7 @@ class Analisador(object):
             resultado = UnOp(op, [self.fator()])
             return resultado
         elif(self.tokens.atual.tipo == 'INT'):
-            resultado = IntVal(self.tokens.atual.valor)
+            resultado = IntVal(self.tokens.atual.valor,[])
             self.tokens.selecionarProximo()
             return resultado
         elif(self.tokens.atual.tipo == 'OPEN_P'):
@@ -456,33 +426,33 @@ class Analisador(object):
             else:
                 raise Exception("Erro: Fechar parenteses")
         elif(self.tokens.atual.tipo == 'VAR'):
-            resultado = VarVal(self.tokens.atual.valor)
+            resultado = VarVal(self.tokens.atual.valor,[])
             self.tokens.selecionarProximo()
             return resultado
         else:
             raise Exception("Erro no fator")
     
-    def booleanexp(self):
-        resultado = self.booleanterm()
+    def booleanExp(self):
+        resultado = self.booleanTerm()
         while(self.tokens.atual.tipo == 'OR'):
             op = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
-            resultado = BinOp(op,[resultado, self.booleanterm()])
+            resultado = BinOp(op,[resultado, self.booleanTerm()])
         return resultado
     
-    def booleanterm(self):
-        resultado = self.booleanfactor()
+    def booleanTerm(self):
+        resultado = self.booleanFactor()
         while(self.tokens.atual.tipo == 'AND'):
             op = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
-            resultado = BinOp(op,[resultado, self.booleanfactor()])
+            resultado = BinOp(op,[resultado, self.booleanFactor()])
         return resultado
 
-    def booleanfactor(self):
+    def booleanFactor(self):
         if(self.tokens.atual.tipo == 'NOT'):
             op = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
-            return UnOp(op,[self.booleanfactor()])
+            return UnOp(op,[self.booleanFactor()])
         else:
             return self.relExp()
     
@@ -497,12 +467,12 @@ class Analisador(object):
 
 if __name__ == "__main__":
 
-    inputFile = open("input.c", "r")
-    inputFile = PrePro.espaco(inputFile)
-    inputFile = PrePro.comentarios(inputFile)
+    input_file = open("input.c", "r")
+    input_file = PrePro.espaco(input_file)
+    input_file = PrePro.comentarios(input_file)
 
     table = SymbleTable()
-    tokenizador = Tokenizador(inputFile,0,'null')
+    tokenizador = Tokenizador(input_file,0,'null')
     tokenizador.selecionarProximo()
     analisador = Analisador(tokenizador, table)
     r = analisador.comandos()
