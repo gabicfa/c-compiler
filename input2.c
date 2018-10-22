@@ -1,7 +1,9 @@
 void main()
 {
-    int x,y;
+    int x, z; 
+    char y;
     x=3;
-    y=x;
-    printf(y);
+    y=4;
+    z = x + y;
+    printf(z);
 }

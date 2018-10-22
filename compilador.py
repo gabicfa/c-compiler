@@ -70,8 +70,12 @@ class BinOp(Node):
     def evaluate(self, table):
         if self.value ==  'ATRI':
             if table.check(self.children[0].value):
-                t = table.get(self.children[0].value)[1]
-                table.set(self.children[0].value, self.children[1].evaluate(table),  t)
+                tipo_val_esq = table.get(self.children[0].value)[1]
+                tipo_val_dir = self.children[1].evaluate(table)[1]
+                if(tipo_val_esq == tipo_val_dir):
+                    table.set(self.children[0].value, self.children[1].evaluate(table),  tipo_val_esq)
+                else:
+                    raise Exception("Erro: Tipos diferentes")
         else:
             val_esq = self.children[0].evaluate(table)
             if self.value == 'WHILE':
@@ -80,26 +84,31 @@ class BinOp(Node):
                     val_esq = self.children[0].evaluate(table)
             else:
                 val_dir = self.children[1].evaluate(table)
-                if self.value == 'PLUS':
-                    return val_esq + val_dir
-                elif self.value == 'MINUS':
-                    return val_esq - val_dir
-                elif self.value == 'MULT':
-                    return val_esq * val_dir
-                elif self.value == 'DIV':
-                    return val_esq // val_dir
-                elif self.value == 'AND':
-                    return val_esq and val_dir
-                elif self.value == 'OR':
-                    return val_esq or val_dir
-                elif self.value == 'GREATER':
-                    return val_esq > val_dir
-                elif self.value == 'LESS':
-                    return val_esq < val_dir
-                elif self.value == 'EQUAL':
-                    return val_esq == val_dir
+                if (val_esq[1] == val_dir[1]):
+                    val_esq = val_esq[0]
+                    val_dir = val_dir[0]
+                    if self.value == 'PLUS':
+                        return [val_esq + val_dir,  'INT']
+                    elif self.value == 'MINUS':
+                        return [val_esq - val_dir, 'INT']
+                    elif self.value == 'MULT':
+                        return [val_esq * val_dir, 'INT']
+                    elif self.value == 'DIV':
+                        return [val_esq // val_dir, 'INT']
+                    elif self.value == 'AND':
+                        return [val_esq and val_dir, 'CHAR']
+                    elif self.value == 'OR':
+                        return [val_esq or val_dir, 'CHAR']
+                    elif self.value == 'GREATER':
+                        return [val_esq > val_dir, 'CHAR']
+                    elif self.value == 'LESS':
+                        return [val_esq < val_dir, 'CHAR']
+                    elif self.value == 'EQUAL':
+                        return [val_esq == val_dir, 'CHAR']
+                    else:
+                        raise Exception("Erro no Binop")
                 else:
-                    raise Exception("Erro no Binop")
+                    raise Exception("Erro: Tipos diferentes")
 
 class UnOp(Node):
     def evaluate(self,table):
@@ -117,7 +126,7 @@ class UnOp(Node):
 
 class IntVal(Node):
     def evaluate(self,table):
-        return int(self.value)
+        return [int(self.value), 'INT']
 
 class VarVal(Node):
     def evaluate(self, table):
@@ -126,7 +135,7 @@ class VarVal(Node):
 
 class Scanf(Node):
     def evaluate(self, table):
-        return int(input())
+        return [int(input()), 'INT'] 
 
 class NoOp(Node):
     def __init__(self):
@@ -564,7 +573,7 @@ class Analisador(object):
 
 if __name__ == "__main__":
 
-    with open('input.c', 'r') as myfile:
+    with open('input2.c', 'r') as myfile:
         input_file=myfile.read().replace('\n', '')
     input_file = PrePro.comentarios(input_file)
 
