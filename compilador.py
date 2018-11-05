@@ -41,12 +41,20 @@ class ProgOp(Node):
     def evaluate(self,table):
         self.children.evaluate(table)
 
+class FuncDec(Node):
+    def evaluate(self,table):
+        table.set("") #TODO
+
+class FuncCall(Node):
+    def evaluate(self,table):
+        table.set("") #TODO chamar funcoes 
+
 class CmdsOp(Node):    
     def evaluate(self, table):
         for child in self.children:
             child.evaluate(table)
 
-class DeclaOp(Node):    
+class VarDec(Node):    
     def evaluate(self, table):
         for child in self.children:
             table.set(child.value, None, self.value)
@@ -229,8 +237,8 @@ class Tokenizador(object):
                     t = Token('INT', string_token)
                 elif(string_token == "char"):    
                     t = Token('CHAR', string_token)
-                elif(string_token == "main"):    
-                    t = Token('MAIN', string_token)
+                elif(string_token == "return"):    
+                    t = Token('RETURN', string_token)
                 else:
                     t = Token('VAR', string_token)
                 self.atual = t
@@ -326,37 +334,186 @@ class Tokenizador(object):
                 self.atual = t
                 self.posicao = self.posicao+1
    
+    def peek(self, num):
+        pos = self.posicao
+        for x in range (0, num):
+            if(pos == len(self.origem)):
+                t = Token('FIM', 'null')
+            else:
+                character = self.origem[pos]
+                if(character == ' '):
+                    while((pos != len(self.origem)) and character== ' '):
+                        pos = pos+1
+                        character = self.origem[pos]
+                    if(pos == len(self.origem)):
+                        t = Token('FIM', 'null')
+                        
+                character = self.origem[pos]
+
+                if(character.isdigit()):
+                    while(character.isdigit()):
+                        number.append(character)
+                        pos = pos+1
+                        if(pos != len(self.origem)):
+                            character = self.origem[pos]
+                        else:
+                            break
+
+                    number_token = ''.join(map(str, number))
+                    t = Token('INT', number_token)
+                    del number[:]
+                
+                elif(character.isalpha()):
+                    while(character.isalpha() or character.isdigit() or character == "_"):
+                        string.append(character)
+                        pos = pos+1
+                        if(pos != len(self.origem)):
+                            character = self.origem[pos]
+                        else:
+                            break
+
+                    string_token = ''.join(map(str, string))
+                    if(string_token == "printf"):    
+                        t = Token('PRINTF', string_token)
+                    elif(string_token == "scanf"):    
+                        t = Token('SCANF', string_token)
+                    elif(string_token == "if"):    
+                        t = Token('IF', string_token)
+                    elif(string_token == "else"):    
+                        t = Token('ELSE', string_token)
+                    elif(string_token == "while"):    
+                        t = Token('WHILE', string_token)
+                    elif(string_token == "void"):    
+                        t = Token('VOID', string_token)
+                    elif(string_token == "int"):    
+                        t = Token('INT', string_token)
+                    elif(string_token == "char"):    
+                        t = Token('CHAR', string_token)
+                    elif(string_token == "return"):    
+                        t = Token('RETURN', string_token)
+                    else:
+                        t = Token('VAR', string_token)
+                    
+                    del string[:]
+                
+                elif character == "+":
+                    t = Token('PLUS', 'null')
+
+                elif character is '-':
+                    t=Token('MINUS', 'null') 
+
+                elif character == '/':
+                    t = Token('DIV', 'null')
+
+                elif character == '*':
+                    t = Token('MULT', 'null')
+
+                elif character == '(':
+                    t = Token('OPEN_P','null')
+
+                elif character == ')':
+                    t = Token('CLOSE_P','null')
+
+                elif character == '{':
+                    t = Token('OPEN_C','null')
+
+                elif character == '}':
+                    t = Token('CLOSE_C','null')
+
+                elif character == '=':
+                    if(self.origem[pos+1] != '='):
+                        t = Token('ATRI','null')
+
+                    else: 
+                        t = Token('EQUAL','null')
+
+                elif character == ';':
+                    t = Token('SEMICOLON','null')
+
+                elif character == ',':
+                    t = Token('COLON','null')
+
+                elif character == '&':
+                    if(self.origem[pos+1] == '&'):
+                        
+                        t = Token('AND','null')
+
+                elif character == '|':
+                    if(self.origem[pos+1] == '|'):
+                        
+                        t = Token('OR','null')
+
+                elif character == '!':
+                    t = Token('NOT','null')
+
+                elif character == '>':
+                    t = Token('GREATER','null')
+
+                elif character == '<':
+                    t = Token('LESS','null')
+        return t
+            
+
 class Analisador(object):
 
     def __init__(self,tokens,table):
         self.tokens = tokens
         self.table = table
+        self.numFunc = 0
     
     def programa(self):
-        self.tipo()
-        if(self.tokens.atual.tipo == 'MAIN'):
-            self.tokens.selecionarProximo()
-            if(self.tokens.atual.tipo == 'OPEN_P'):
+        raiz_children = [] 
+        while(self.tokens.atual.tipo != 'FIM'):
+            self.numFunc+=1
+            func_dec_children =[]
+            func_dec_children.append(self.tipo())
+            if(self.tokens.atual.tipo == 'VAR'):
+                name_func = self.tokens.atual.valor
                 self.tokens.selecionarProximo()
-                if(self.tokens.atual.tipo == 'CLOSE_P'):
+                if(self.tokens.atual.tipo == 'OPEN_P'):
                     self.tokens.selecionarProximo()
-                    return ProgOp(None, self.comandos())
+                    while(self.tokens.atual.tipo != 'CLOSE_P'):
+                        tipo_arg = self.tipo()
+                        arg = VarVal(self.tokens.atual.valor,[])
+                        vd = VarDec (tipo_arg, [arg])
+                        func_dec_children.append(vd)
+                        self.tokens.selecionarProximo()
+                        while(self.tokens.atual.tipo == 'COLON'):
+                            self.tokens.selecionarProximo()
+                            tipo_arg = self.tipo()
+                            arg = VarVal(self.tokens.atual.valor,[])
+                            vd = VarDec (tipo_arg, [arg])
+                            func_dec_children.append(vd)
+                            self.tokens.selecionarProximo()
+                    if(self.tokens.atual.tipo == 'CLOSE_P'):
+                        self.tokens.selecionarProximo()
+                        func_dec_children.append(self.comandos())
+                        fd = FuncDec(name_func, func_dec_children)
+                        raiz_children.append(fd)
+                        self.tokens.selecionarProximo()
+                    else:
+                        raise Exception ("Erro: Fechar Parenteses")
                 else:
-                    raise Exception ("Erro: Fechar Chaves")
+                    raise Exception ("Erro: Abrir Parenteses")
             else:
-                raise Exception ("Erro: Abrir Parenteses")
-        else:
-            raise Exception ("Erro: Main")  
+                raise Exception ("Erro: Func")
+        self.numFunc-=1
+        if(self.numFunc==0):
+            fc = FuncCall('main', [])
+            raiz_children.append(fc)
+            return CmdsOp(None, raiz_children) 
 
     def comandos(self):
         if(self.tokens.atual.tipo == 'OPEN_C'):
             self.tokens.selecionarProximo()
             comandos_children = []
-            while(self.tokens.atual.tipo != 'CLOSE_C'):
+            while(self.tokens.atual.tipo != 'CLOSE_C' and self.tokens.atual.tipo != 'FIM'):
                 cmd = self.comando()
                 comandos_children.append(cmd)
             if(self.tokens.atual.tipo == 'CLOSE_C'):
                 return CmdsOp(None, comandos_children)
+            elif(self.tokens.atual.tipo == 'FIM'):
+                return
             else:
                 raise Exception("Erro: Fechar Chaves")
         else:
@@ -364,14 +521,17 @@ class Analisador(object):
 
     def tipo(self):
         if(self.tokens.atual.tipo == 'VOID'):
+            tipo = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
-            return
+            return tipo
         elif(self.tokens.atual.tipo == 'INT'):
+            tipo = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
-            return
+            return tipo
         elif(self.tokens.atual.tipo == 'CHAR'):
+            tipo = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
-            return
+            return tipo
         else:
             raise Exception("Erro: Tipo")
 
@@ -391,10 +551,35 @@ class Analisador(object):
             resultado = self.whileExp()
             return resultado
         elif(self.tokens.atual.tipo == 'VOID' or self.tokens.atual.tipo == 'INT' or self.tokens.atual.tipo == 'CHAR'):
-            resultado = self.declaracao()
+            p2 = self.tokens.peek(2)
+            if (p2.tipo == 'OPEN_P'):
+                resultado = self.programa()
+                return resultado
+            else:
+                return self.declaracao()
+        elif(self.tokens.atual.tipo == 'RETURN'):
+            resultado = self.returnExp()
+            self.tokens.selecionarProximo()
             return resultado
         else:
             raise Exception("Erro no comando")
+    
+    def returnExp(self):
+        self.tokens.selecionarProximo()
+        if(self.tokens.atual.tipo == "OPEN_P"):
+            self.tokens.selecionarProximo()
+            resultado = UnOp('RETURN', [self.expressao()])
+            if(self.tokens.atual.tipo=='CLOSE_P'):
+                    self.tokens.selecionarProximo()
+                    if(self.tokens.atual.tipo == 'SEMICOLON'):
+                        self.tokens.selecionarProximo() 
+                        return resultado
+                    else:
+                        raise Exception("Erro: Ponto e virgula")
+            else:
+                raise Exception("Erro: Fechar parenteses")
+        else:
+            raise Exception("Erro: Abrir parenteses")
     
     def declaracao(self):
         tipo = self.tokens.atual.tipo
@@ -414,7 +599,7 @@ class Analisador(object):
                     raise Exception("Erro declaração com virgula")
             if(self.tokens.atual.tipo == 'SEMICOLON'):
                 self.tokens.selecionarProximo()
-                return DeclaOp (tipo, declaracao_children)
+                return VarDec (tipo, declaracao_children)
             else:
                 raise Exception("Erro: Ponto e virgula")
         else:
@@ -481,9 +666,15 @@ class Analisador(object):
                     if(self.tokens.atual.tipo == 'CLOSE_P'):
                         self.tokens.selecionarProximo()
                         resultado = Scanf('SCANF',[])
+            elif(self.tokens.atual.tipo == 'VAR'):
+                peek_token = self.tokens.peek(1)
+                if(peek_token.tipo == 'OPEN_P'):
+                    resultado = self.funcCall()
+                    self.tokens.selecionarProximo()
+                else:
+                    resultado = self.expressao()
             else:
                 resultado = self.expressao()
-
             if(self.tokens.atual.tipo == 'SEMICOLON'):
                 self.tokens.selecionarProximo() 
             else:
@@ -492,6 +683,27 @@ class Analisador(object):
         else:
             raise Exception("Erro: Inserir '=' ")
 
+    def funcCall(self):
+        func_call_arg =[]
+        if(self.tokens.atual.tipo == 'VAR'):
+            name_func = self.tokens.atual.valor
+            self.tokens.selecionarProximo() 
+        if(self.tokens.atual.tipo == 'OPEN_P'):
+            self.tokens.selecionarProximo() 
+            while(self.tokens.atual.tipo != 'CLOSE_P'):
+                exp = self.expressao()
+                func_call_arg.append(exp)
+                while(self.tokens.atual.tipo == 'COLON'):
+                    self.tokens.selecionarProximo() 
+                    exp = self.expressao()
+                    func_call_arg.append(exp)
+                if(self.tokens.atual.tipo == 'CLOSE_P'):
+                    return FuncCall(name_func, func_call_arg)
+                else:
+                    raise Exception("Erro: Funcao sem fechar parenteses")
+        else:
+            raise Exception ("Erro: Funcao sem abrir parenteses")
+    
     def expressao(self):
         resultado = self.termo()
         while(self.tokens.atual.tipo == 'PLUS' or self.tokens.atual.tipo == 'MINUS'):
@@ -532,9 +744,15 @@ class Analisador(object):
             else:
                 raise Exception("Erro: Fechar parenteses")
         elif(self.tokens.atual.tipo == 'VAR'):
-            resultado = VarVal(self.tokens.atual.valor,[])
-            self.tokens.selecionarProximo()
-            return resultado
+            peek_token = self.tokens.peek(1)
+            if(peek_token.tipo == 'OPEN_P'):
+                resultado = self.funcCall()
+                self.tokens.selecionarProximo()
+                return resultado
+            else:
+                resultado = VarVal(self.tokens.atual.valor,[])
+                self.tokens.selecionarProximo()
+                return resultado
         else:
             raise Exception("Erro no fator")
     
@@ -573,7 +791,7 @@ class Analisador(object):
 
 if __name__ == "__main__":
 
-    with open('input2.c', 'r') as myfile:
+    with open('input.c', 'r') as myfile:
         input_file=myfile.read().replace('\n', '')
     input_file = PrePro.comentarios(input_file)
 
