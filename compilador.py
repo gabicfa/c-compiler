@@ -37,22 +37,44 @@ class Node:
     def evaluate(self, table):
         pass
 
-class ProgOp(Node):
-    def evaluate(self,table):
-        self.children.evaluate(table)
-
 class FuncDec(Node):
     def evaluate(self,table):
-        table.set("") #TODO
+        if(table.parent!=None):       
+            table = table.parent
+        table.set(self.value, self, 'FUNC') 
 
 class FuncCall(Node):
     def evaluate(self,table):
-        table.set("") #TODO chamar funcoes 
+        new_table = SymbleTable(table)
+        node_declaracao = table.get(self.value)
+        if (len(self.children) ==  len(node_declaracao[0].children)-2):
+            if(len(node_declaracao[0].children)>2):
+                for child in range(0, len(self.children)):
+                    arg_call = self.children[child].evaluate(table)
+                    tipo_call = arg_call[1]
+                    tipo_func = node_declaracao[0].children[child+1].value
+                    if(tipo_call==tipo_func):
+                        new_table.set(node_declaracao[0].children[child+1].children[0].value, arg_call[0], tipo_func)
+                    else:
+                        raise Exception ("Erro nos tipos das variaveis")
+            node_declaracao[0].children[len(node_declaracao[0].children)-1].evaluate(new_table)
+            if(node_declaracao[0].children[0]!='VOID'):
+                return_value = new_table.get('return')
+                if(node_declaracao[0].children[0]!=return_value[1]):
+                    raise Exception ("Tipo do retorno errado")
+                else:
+                    return return_value
+        else:
+            raise Exception("Número incorreto de argumentos")
 
 class CmdsOp(Node):    
     def evaluate(self, table):
+        if table == None:
+            new_table = SymbleTable()
+        else:
+            new_table = SymbleTable(table)
         for child in self.children:
-            child.evaluate(table)
+            child.evaluate(new_table)
 
 class VarDec(Node):    
     def evaluate(self, table):
@@ -80,8 +102,8 @@ class BinOp(Node):
             if table.check(self.children[0].value):
                 tipo_val_esq = table.get(self.children[0].value)[1]
                 tipo_val_dir = self.children[1].evaluate(table)[1]
-                if(tipo_val_esq == tipo_val_dir):
-                    table.set(self.children[0].value, self.children[1].evaluate(table),  tipo_val_esq)
+                if(tipo_val_esq == tipo_val_dir): 
+                    table.set(self.children[0].value, self.children[1].evaluate(table)[0],  tipo_val_esq)
                 else:
                     raise Exception("Erro: Tipos diferentes")
         else:
@@ -122,13 +144,16 @@ class UnOp(Node):
     def evaluate(self,table):
         child = self.children[0].evaluate(table)
         if self.value == 'PLUS':
-            return child
+            return child[0]
         elif self.value == 'MINUS':
-            return -child
+            return -child[0]
         elif self.value == 'PRINTF':
-            print(child)
+            print(child[0])
         elif self.value == 'NOT':
-            return not child
+            return not child[0]
+        elif self.value == 'RETURN':
+            table.parent.set('return', child[0], child[1])
+            return child
         else:
             raise Exception("Erro no UnOp")
 
@@ -139,7 +164,7 @@ class IntVal(Node):
 class VarVal(Node):
     def evaluate(self, table):
         v = table.get(self.value)
-        return v[0]
+        return v
 
 class Scanf(Node):
     def evaluate(self, table):
@@ -154,17 +179,30 @@ class NoOp(Node):
         pass
 
 class SymbleTable(object):
-    def __init__(self):
+    def __init__(self, parent=None):
         self.table = {}
+        self.parent=parent
     
     def get(self, var):
-        return self.table[var]
-    
+        if var in self.table:
+            return self.table[var]
+        else:
+            if self.parent !=None:
+                return self.parent.get(var)
+            else:
+                raise Exception ("Variavel "+var+" não encontrada nesse escopo")
+
     def set(self, var, value, tipo):
         self.table[var] = [value, tipo]
     
     def check(self, var):
-        return var in self.table
+        if var in self.table:
+            return True
+        else:
+            if self.parent != None:
+                return self.parent.check(var)
+            else:
+                return False
 
 class Token(object):
 
@@ -453,18 +491,15 @@ class Tokenizador(object):
                     t = Token('LESS','null')
         return t
             
-
 class Analisador(object):
 
     def __init__(self,tokens,table):
         self.tokens = tokens
         self.table = table
-        self.numFunc = 0
     
     def programa(self):
         raiz_children = [] 
         while(self.tokens.atual.tipo != 'FIM'):
-            self.numFunc+=1
             func_dec_children =[]
             func_dec_children.append(self.tipo())
             if(self.tokens.atual.tipo == 'VAR'):
@@ -490,19 +525,16 @@ class Analisador(object):
                         func_dec_children.append(self.comandos())
                         fd = FuncDec(name_func, func_dec_children)
                         raiz_children.append(fd)
-                        self.tokens.selecionarProximo()
                     else:
                         raise Exception ("Erro: Fechar Parenteses")
                 else:
                     raise Exception ("Erro: Abrir Parenteses")
             else:
                 raise Exception ("Erro: Func")
-        self.numFunc-=1
-        if(self.numFunc==0):
-            fc = FuncCall('main', [])
-            raiz_children.append(fc)
-            return CmdsOp(None, raiz_children) 
-
+        fc = FuncCall('main', [])
+        raiz_children.append(fc)
+        return CmdsOp(None, raiz_children)
+             
     def comandos(self):
         if(self.tokens.atual.tipo == 'OPEN_C'):
             self.tokens.selecionarProximo()
@@ -511,6 +543,7 @@ class Analisador(object):
                 cmd = self.comando()
                 comandos_children.append(cmd)
             if(self.tokens.atual.tipo == 'CLOSE_C'):
+                self.tokens.selecionarProximo()
                 return CmdsOp(None, comandos_children)
             elif(self.tokens.atual.tipo == 'FIM'):
                 return
@@ -543,7 +576,6 @@ class Analisador(object):
             return self.print()
         elif(self.tokens.atual.tipo == 'OPEN_C'):
             resultado = self.comandos()
-            self.tokens.selecionarProximo()
             return resultado
         elif(self.tokens.atual.tipo == 'IF'):
             return self.ifExp()
@@ -551,15 +583,9 @@ class Analisador(object):
             resultado = self.whileExp()
             return resultado
         elif(self.tokens.atual.tipo == 'VOID' or self.tokens.atual.tipo == 'INT' or self.tokens.atual.tipo == 'CHAR'):
-            p2 = self.tokens.peek(2)
-            if (p2.tipo == 'OPEN_P'):
-                resultado = self.programa()
-                return resultado
-            else:
                 return self.declaracao()
         elif(self.tokens.atual.tipo == 'RETURN'):
             resultado = self.returnExp()
-            self.tokens.selecionarProximo()
             return resultado
         else:
             raise Exception("Erro no comando")
@@ -586,22 +612,48 @@ class Analisador(object):
         self.tokens.selecionarProximo()
         declaracao_children = []
         if(self.tokens.atual.tipo == 'VAR'):
-            var = VarVal(self.tokens.atual.valor,[])
-            declaracao_children.append(var)
+            var = self.tokens.atual.valor
             self.tokens.selecionarProximo()
-            while(self.tokens.atual.tipo=='COLON'):
+            if(self.tokens.atual.tipo=='OPEN_P'):
+                func_dec_children =[]
+                func_dec_children.append(tipo)
+                name_func = var
                 self.tokens.selecionarProximo()
-                if(self.tokens.atual.tipo == 'VAR'):
-                    var = VarVal(self.tokens.atual.valor,[])
-                    declaracao_children.append(var)
+                while(self.tokens.atual.tipo != 'CLOSE_P'):
+                    tipo_arg = self.tipo()
+                    arg = VarVal(self.tokens.atual.valor,[])
+                    vd = VarDec (tipo_arg, [arg])
+                    func_dec_children.append(vd)
                     self.tokens.selecionarProximo()
+                    while(self.tokens.atual.tipo == 'COLON'):
+                        self.tokens.selecionarProximo()
+                        tipo_arg = self.tipo()
+                        arg = VarVal(self.tokens.atual.valor,[])
+                        vd = VarDec (tipo_arg, [arg])
+                        func_dec_children.append(vd)
+                        self.tokens.selecionarProximo()
+                if(self.tokens.atual.tipo == 'CLOSE_P'):
+                    self.tokens.selecionarProximo()
+                    func_dec_children.append(self.comandos())
+                    return FuncDec(name_func, func_dec_children)
                 else:
-                    raise Exception("Erro declaração com virgula")
-            if(self.tokens.atual.tipo == 'SEMICOLON'):
-                self.tokens.selecionarProximo()
-                return VarDec (tipo, declaracao_children)
+                    raise Exception ("Erro: Fechar Parenteses")
             else:
-                raise Exception("Erro: Ponto e virgula")
+                var = VarVal(var,[])
+                declaracao_children.append(var)
+                while(self.tokens.atual.tipo=='COLON'):
+                    self.tokens.selecionarProximo()
+                    if(self.tokens.atual.tipo == 'VAR'):
+                        var = VarVal(self.tokens.atual.valor,[])
+                        declaracao_children.append(var)
+                        self.tokens.selecionarProximo()
+                    else:
+                        raise Exception("Erro declaração com virgula")
+                if(self.tokens.atual.tipo == 'SEMICOLON'):
+                    self.tokens.selecionarProximo()
+                    return VarDec (tipo, declaracao_children)
+                else:
+                    raise Exception("Erro: Ponto e virgula")
         else:
             raise Exception("Erro declaração")
 
@@ -795,7 +847,7 @@ if __name__ == "__main__":
         input_file=myfile.read().replace('\n', '')
     input_file = PrePro.comentarios(input_file)
 
-    table = SymbleTable()
+    table = None
     tokenizador = Tokenizador(input_file,0,'null')
     tokenizador.selecionarProximo()
     analisador = Analisador(tokenizador, table)
@@ -803,7 +855,6 @@ if __name__ == "__main__":
     tokenizador.selecionarProximo()
 
     if(tokenizador.atual.tipo == 'FIM'):
-        print("semantico")
         r.evaluate(table)
     else:
         raise Exception("Erro: Análise terminou antes do fim do arquivo de entrada")
