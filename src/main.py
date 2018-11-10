@@ -4,7 +4,7 @@ from analisador import Analisador
 
 if __name__ == "__main__":
 
-    with open('../input.c', 'r') as myfile:
+    with open('input.c', 'r') as myfile:
         input_file=myfile.read().replace('\n', '')
     input_file = PrePro.comentarios(input_file)
 
