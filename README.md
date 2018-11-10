@@ -1,9 +1,11 @@
 # LogComp
 
 ### Diagrama Sintático
-![](DiagramaSintatico/DS_v2.2(1).png)
-![](DiagramaSintatico/DS_v2.2(2).png)
-![](DiagramaSintatico/DS_v2.2(3).png)
+![](DiagramaSintatico/DS_v2.4(1).png)
+![](DiagramaSintatico/DS_v2.4(2).png)
+![](DiagramaSintatico/DS_v2.4(3).png)
+![](DiagramaSintatico/DS_v2.4(4).png)
+![](DiagramaSintatico/DS_v2.4(5).png)
 ### EBNF:
 ```
 comandos = "{", comando, ";", { comando, ";" }, "}" ;

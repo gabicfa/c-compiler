@@ -92,7 +92,7 @@ class Analisador(object):
             resultado = self.whileExp()
             return resultado
         elif(self.tokens.atual.tipo == 'VOID' or self.tokens.atual.tipo == 'INT' or self.tokens.atual.tipo == 'CHAR'):
-                return self.declaracao()
+            return self.declaracao()
         elif(self.tokens.atual.tipo == 'RETURN'):
             resultado = self.returnExp()
             return resultado
