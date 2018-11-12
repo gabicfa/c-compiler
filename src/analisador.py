@@ -7,55 +7,30 @@ class Analisador(object):
         self.table = table
     
     def programa(self):
-        raiz_children = [] 
-        while(self.tokens.atual.tipo != 'FIM'):
-            func_dec_children =[]
-            func_dec_children.append(self.tipo())
-            if(self.tokens.atual.tipo == 'VAR'):
-                name_func = self.tokens.atual.valor
+        self.tipo()
+        if(self.tokens.atual.tipo == 'MAIN'):
+            self.tokens.selecionarProximo()
+            if(self.tokens.atual.tipo == 'OPEN_P'):
                 self.tokens.selecionarProximo()
-                if(self.tokens.atual.tipo == 'OPEN_P'):
+                if(self.tokens.atual.tipo == 'CLOSE_P'):
                     self.tokens.selecionarProximo()
-                    while(self.tokens.atual.tipo != 'CLOSE_P'):
-                        tipo_arg = self.tipo()
-                        arg = VarVal(self.tokens.atual.valor,[])
-                        vd = VarDec (tipo_arg, [arg])
-                        func_dec_children.append(vd)
-                        self.tokens.selecionarProximo()
-                        while(self.tokens.atual.tipo == 'COLON'):
-                            self.tokens.selecionarProximo()
-                            tipo_arg = self.tipo()
-                            arg = VarVal(self.tokens.atual.valor,[])
-                            vd = VarDec (tipo_arg, [arg])
-                            func_dec_children.append(vd)
-                            self.tokens.selecionarProximo()
-                    if(self.tokens.atual.tipo == 'CLOSE_P'):
-                        self.tokens.selecionarProximo()
-                        func_dec_children.append(self.comandos())
-                        fd = FuncDec(name_func, func_dec_children)
-                        raiz_children.append(fd)
-                    else:
-                        raise Exception ("Erro: Fechar Parenteses")
+                    return ProgOp(None, self.comandos())
                 else:
-                    raise Exception ("Erro: Abrir Parenteses")
+                    raise Exception ("Erro: Fechar Chaves")
             else:
-                raise Exception ("Erro: Func")
-        fc = FuncCall('main', [])
-        raiz_children.append(fc)
-        return CmdsOp(None, raiz_children)
-             
+                raise Exception ("Erro: Abrir Parenteses")
+        else:
+            raise Exception ("Erro: Main")  
+
     def comandos(self):
         if(self.tokens.atual.tipo == 'OPEN_C'):
             self.tokens.selecionarProximo()
             comandos_children = []
-            while(self.tokens.atual.tipo != 'CLOSE_C' and self.tokens.atual.tipo != 'FIM'):
+            while(self.tokens.atual.tipo != 'CLOSE_C'):
                 cmd = self.comando()
                 comandos_children.append(cmd)
             if(self.tokens.atual.tipo == 'CLOSE_C'):
-                self.tokens.selecionarProximo()
                 return CmdsOp(None, comandos_children)
-            elif(self.tokens.atual.tipo == 'FIM'):
-                return
             else:
                 raise Exception("Erro: Fechar Chaves")
         else:
@@ -63,17 +38,14 @@ class Analisador(object):
 
     def tipo(self):
         if(self.tokens.atual.tipo == 'VOID'):
-            tipo = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
-            return tipo
+            return
         elif(self.tokens.atual.tipo == 'INT'):
-            tipo = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
-            return tipo
+            return
         elif(self.tokens.atual.tipo == 'CHAR'):
-            tipo = self.tokens.atual.tipo
             self.tokens.selecionarProximo()
-            return tipo
+            return
         else:
             raise Exception("Erro: Tipo")
 
@@ -85,6 +57,7 @@ class Analisador(object):
             return self.print()
         elif(self.tokens.atual.tipo == 'OPEN_C'):
             resultado = self.comandos()
+            self.tokens.selecionarProximo()
             return resultado
         elif(self.tokens.atual.tipo == 'IF'):
             return self.ifExp()
@@ -92,77 +65,32 @@ class Analisador(object):
             resultado = self.whileExp()
             return resultado
         elif(self.tokens.atual.tipo == 'VOID' or self.tokens.atual.tipo == 'INT' or self.tokens.atual.tipo == 'CHAR'):
-            return self.declaracao()
-        elif(self.tokens.atual.tipo == 'RETURN'):
-            resultado = self.returnExp()
+            resultado = self.declaracao()
             return resultado
         else:
             raise Exception("Erro no comando")
-    
-    def returnExp(self):
-        self.tokens.selecionarProximo()
-        if(self.tokens.atual.tipo == "OPEN_P"):
-            self.tokens.selecionarProximo()
-            resultado = UnOp('RETURN', [self.expressao()])
-            if(self.tokens.atual.tipo=='CLOSE_P'):
-                    self.tokens.selecionarProximo()
-                    if(self.tokens.atual.tipo == 'SEMICOLON'):
-                        self.tokens.selecionarProximo() 
-                        return resultado
-                    else:
-                        raise Exception("Erro: Ponto e virgula")
-            else:
-                raise Exception("Erro: Fechar parenteses")
-        else:
-            raise Exception("Erro: Abrir parenteses")
     
     def declaracao(self):
         tipo = self.tokens.atual.tipo
         self.tokens.selecionarProximo()
         declaracao_children = []
         if(self.tokens.atual.tipo == 'VAR'):
-            var = self.tokens.atual.valor
+            var = VarVal(self.tokens.atual.valor,[])
+            declaracao_children.append(var)
             self.tokens.selecionarProximo()
-            if(self.tokens.atual.tipo=='OPEN_P'):
-                func_dec_children =[]
-                func_dec_children.append(tipo)
-                name_func = var
+            while(self.tokens.atual.tipo=='COLON'):
                 self.tokens.selecionarProximo()
-                while(self.tokens.atual.tipo != 'CLOSE_P'):
-                    tipo_arg = self.tipo()
-                    arg = VarVal(self.tokens.atual.valor,[])
-                    vd = VarDec (tipo_arg, [arg])
-                    func_dec_children.append(vd)
+                if(self.tokens.atual.tipo == 'VAR'):
+                    var = VarVal(self.tokens.atual.valor,[])
+                    declaracao_children.append(var)
                     self.tokens.selecionarProximo()
-                    while(self.tokens.atual.tipo == 'COLON'):
-                        self.tokens.selecionarProximo()
-                        tipo_arg = self.tipo()
-                        arg = VarVal(self.tokens.atual.valor,[])
-                        vd = VarDec (tipo_arg, [arg])
-                        func_dec_children.append(vd)
-                        self.tokens.selecionarProximo()
-                if(self.tokens.atual.tipo == 'CLOSE_P'):
-                    self.tokens.selecionarProximo()
-                    func_dec_children.append(self.comandos())
-                    return FuncDec(name_func, func_dec_children)
                 else:
-                    raise Exception ("Erro: Fechar Parenteses")
+                    raise Exception("Erro declaração com virgula")
+            if(self.tokens.atual.tipo == 'SEMICOLON'):
+                self.tokens.selecionarProximo()
+                return VarDec (tipo, declaracao_children)
             else:
-                var = VarVal(var,[])
-                declaracao_children.append(var)
-                while(self.tokens.atual.tipo=='COLON'):
-                    self.tokens.selecionarProximo()
-                    if(self.tokens.atual.tipo == 'VAR'):
-                        var = VarVal(self.tokens.atual.valor,[])
-                        declaracao_children.append(var)
-                        self.tokens.selecionarProximo()
-                    else:
-                        raise Exception("Erro declaração com virgula")
-                if(self.tokens.atual.tipo == 'SEMICOLON'):
-                    self.tokens.selecionarProximo()
-                    return VarDec (tipo, declaracao_children)
-                else:
-                    raise Exception("Erro: Ponto e virgula")
+                raise Exception("Erro: Ponto e virgula")
         else:
             raise Exception("Erro declaração")
 
@@ -227,15 +155,9 @@ class Analisador(object):
                     if(self.tokens.atual.tipo == 'CLOSE_P'):
                         self.tokens.selecionarProximo()
                         resultado = Scanf('SCANF',[])
-            elif(self.tokens.atual.tipo == 'VAR'):
-                peek_token = self.tokens.peek(1)
-                if(peek_token.tipo == 'OPEN_P'):
-                    resultado = self.funcCall()
-                    self.tokens.selecionarProximo()
-                else:
-                    resultado = self.expressao()
             else:
                 resultado = self.expressao()
+
             if(self.tokens.atual.tipo == 'SEMICOLON'):
                 self.tokens.selecionarProximo() 
             else:
@@ -244,27 +166,6 @@ class Analisador(object):
         else:
             raise Exception("Erro: Inserir '=' ")
 
-    def funcCall(self):
-        func_call_arg =[]
-        if(self.tokens.atual.tipo == 'VAR'):
-            name_func = self.tokens.atual.valor
-            self.tokens.selecionarProximo() 
-        if(self.tokens.atual.tipo == 'OPEN_P'):
-            self.tokens.selecionarProximo() 
-            while(self.tokens.atual.tipo != 'CLOSE_P'):
-                exp = self.expressao()
-                func_call_arg.append(exp)
-                while(self.tokens.atual.tipo == 'COLON'):
-                    self.tokens.selecionarProximo() 
-                    exp = self.expressao()
-                    func_call_arg.append(exp)
-                if(self.tokens.atual.tipo == 'CLOSE_P'):
-                    return FuncCall(name_func, func_call_arg)
-                else:
-                    raise Exception("Erro: Funcao sem fechar parenteses")
-        else:
-            raise Exception ("Erro: Funcao sem abrir parenteses")
-    
     def expressao(self):
         resultado = self.termo()
         while(self.tokens.atual.tipo == 'PLUS' or self.tokens.atual.tipo == 'MINUS'):
@@ -305,15 +206,9 @@ class Analisador(object):
             else:
                 raise Exception("Erro: Fechar parenteses")
         elif(self.tokens.atual.tipo == 'VAR'):
-            peek_token = self.tokens.peek(1)
-            if(peek_token.tipo == 'OPEN_P'):
-                resultado = self.funcCall()
-                self.tokens.selecionarProximo()
-                return resultado
-            else:
-                resultado = VarVal(self.tokens.atual.valor,[])
-                self.tokens.selecionarProximo()
-                return resultado
+            resultado = VarVal(self.tokens.atual.valor,[])
+            self.tokens.selecionarProximo()
+            return resultado
         else:
             raise Exception("Erro no fator")
     

@@ -1,51 +1,23 @@
 from symboltable import SymbleTable
+from identificador import Id
 
 class Node:
     def __init__ (self,value, children):
         self.value = value
         self.children = children
+        self.id = Id.getNew()
     
     def evaluate(self, table):
         pass
 
-class FuncDec(Node):
+class ProgOp(Node):
     def evaluate(self,table):
-        if(table.parent!=None):       
-            table = table.parent
-        table.set(self.value, self, 'FUNC') 
-
-class FuncCall(Node):
-    def evaluate(self,table):
-        new_table = SymbleTable(table)
-        node_declaracao = table.get(self.value)
-        if (len(self.children) ==  len(node_declaracao[0].children)-2):
-            if(len(node_declaracao[0].children)>2):
-                for child in range(0, len(self.children)):
-                    arg_call = self.children[child].evaluate(table)
-                    tipo_call = arg_call[1]
-                    tipo_func = node_declaracao[0].children[child+1].value
-                    if(tipo_call==tipo_func):
-                        new_table.set(node_declaracao[0].children[child+1].children[0].value, arg_call[0], tipo_func)
-                    else:
-                        raise Exception ("Erro nos tipos das variaveis")
-            node_declaracao[0].children[len(node_declaracao[0].children)-1].evaluate(new_table)
-            if(node_declaracao[0].children[0]!='VOID'):
-                return_value = new_table.get('return')
-                if(node_declaracao[0].children[0]!=return_value[1]):
-                    raise Exception ("Tipo do retorno errado")
-                else:
-                    return return_value
-        else:
-            raise Exception("Número incorreto de argumentos")
+        self.children.evaluate(table)
 
 class CmdsOp(Node):    
     def evaluate(self, table):
-        if table == None:
-            new_table = SymbleTable()
-        else:
-            new_table = SymbleTable(table)
         for child in self.children:
-            child.evaluate(new_table)
+            child.evaluate(table)
 
 class VarDec(Node):    
     def evaluate(self, table):
@@ -73,8 +45,8 @@ class BinOp(Node):
             if table.check(self.children[0].value):
                 tipo_val_esq = table.get(self.children[0].value)[1]
                 tipo_val_dir = self.children[1].evaluate(table)[1]
-                if(tipo_val_esq == tipo_val_dir): 
-                    table.set(self.children[0].value, self.children[1].evaluate(table)[0],  tipo_val_esq)
+                if(tipo_val_esq == tipo_val_dir):
+                    table.set(self.children[0].value, self.children[1].evaluate(table),  tipo_val_esq)
                 else:
                     raise Exception("Erro: Tipos diferentes")
         else:
@@ -115,16 +87,13 @@ class UnOp(Node):
     def evaluate(self,table):
         child = self.children[0].evaluate(table)
         if self.value == 'PLUS':
-            return child[0]
-        elif self.value == 'MINUS':
-            return -child[0]
-        elif self.value == 'PRINTF':
-            print(child[0])
-        elif self.value == 'NOT':
-            return not child[0]
-        elif self.value == 'RETURN':
-            table.parent.set('return', child[0], child[1])
             return child
+        elif self.value == 'MINUS':
+            return -child
+        elif self.value == 'PRINTF':
+            print(child)
+        elif self.value == 'NOT':
+            return not child
         else:
             raise Exception("Erro no UnOp")
 
