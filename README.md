@@ -1,6 +1,6 @@
 # C compiler
 
-### Diagrama Sintático
+### Syntactic diagram
 ![](DiagramaSintatico/DS_v2.4(1).png)
 ![](DiagramaSintatico/DS_v2.4(2).png)
 ![](DiagramaSintatico/DS_v2.4(3).png)
