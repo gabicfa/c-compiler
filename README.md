@@ -1,4 +1,4 @@
-# LogComp
+# C compiler
 
 ### Diagrama Sintático
 ![](DiagramaSintatico/DS_v2.4(1).png)
